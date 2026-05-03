@@ -1,0 +1,34 @@
+{
+  "_comment": "STS \u2014 Semantic Traffic Sanitizer configuration. Edit here; restart to apply.",
+  "proxy": {
+    "host": "0.0.0.0",
+    "port": 8080,
+    "target_host": "127.0.0.1",
+    "target_port": 8000
+  },
+  "dashboard": {
+    "host": "0.0.0.0",
+    "port": 3000
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000
+  },
+  "mode": "strict",
+  "_mode_options": {
+    "detect": "Log everything. Never block or sanitize \u2014 purely observe.",
+    "strict": "Block Critical/High, sanitize Medium, allow Low. (Recommended)",
+    "paranoid": "Block Critical/High/Medium, allow only Low. Zero tolerance."
+  },
+  "ai": {
+    "primary": "groq",
+    "secondary": "gemini",
+    "fallback": "rules",
+    "cache_size": 512,
+    "rate_limit_per_min": 12
+  },
+  "logging": {
+    "log_benign": false,
+    "log_dir": "../logs"
+  }
+}

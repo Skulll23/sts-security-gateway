@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>STS — Security Operations Center</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  <script src="/static/js/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    :root {
+      --bg:       #060810;
+      --surface:  #0d1117;
+      --surface2: #111827;
+      --border:   #1f2937;
+      --border2:  #374151;
+      --accent:   #3b82f6;
+      --accent2:  #60a5fa;
+      --red:      #ef4444;
+      --red2:     #fca5a5;
+      --orange:   #f97316;
+      --orange2:  #fdba74;
+      --yellow:   #eab308;
+      --yellow2:  #fde047;
+      --green:    #22c55e;
+      --green2:   #86efac;
+      --purple:   #8b5cf6;
+      --purple2:  #c4b5fd;
+      --cyan:     #06b6d4;
+      --cyan2:    #67e8f9;
+      --pink:     #ec4899;
+      --text:     #f1f5f9;
+      --text2:    #94a3b8;
+      --text3:    #475569;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ── TOPBAR ─────────────────────────────────────────────────────────────── */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .topbar-left { display: flex; align-items: center; gap: 1rem; }
+    .logo {
+      display: flex; align-items: center; gap: .6rem;
+      font-weight: 700; font-size: .95rem; letter-spacing: -.2px;
+    }
+    .logo-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem;
+    }
+    .logo-name { color: var(--text); }
+    .logo-name span { color: var(--accent2); }
+    .logo-subtitle { font-size: .68rem; color: var(--text3); font-weight: 400; margin-top: -2px; }
+    .topbar-right { display: flex; align-items: center; gap: 1.2rem; }
+    .live-badge {
+      display: flex; align-items: center; gap: .4rem;
+      background: #052e16; border: 1px solid #166534;
+      padding: .25rem .65rem; border-radius: 20px;
+    }
+    .live-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: pulse 1.4s infinite; }
+    .live-text { font-size: .7rem; font-weight: 600; color: var(--green); letter-spacing: .5px; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+    .topbar-link { color: var(--text3); font-size: .78rem; text-decoration: none; transition: color .15s; }
+    .topbar-link:hover { color: var(--accent2); }
+    .last-update { font-size: .72rem; color: var(--text3); }
+
+    /* ── SECURITY SCORE BANNER ─────────────────────────────────────────────── */
+    .score-banner {
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 2rem;
+    }
+    .score-left { display: flex; align-items: center; gap: 1.5rem; }
+    .score-circle {
+      position: relative; width: 72px; height: 72px;
+      flex-shrink: 0;
+    }
+    .score-circle svg { transform: rotate(-90deg); }
+    .score-circle-bg { fill: none; stroke: #1e2a4a; stroke-width: 6; }
+    .score-circle-fg { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset .8s ease; }
+    .score-number {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 1.3rem; font-weight: 700; line-height: 1;
+    }
+    .score-label-sm { font-size: .45rem; color: var(--text3); letter-spacing: .5px; margin-top: 1px; }
+    .score-info h3 { font-size: .95rem; font-weight: 600; margin-bottom: .2rem; }
+    .score-info p  { font-size: .78rem; color: var(--text2); }
+    .score-right { display: flex; gap: 2rem; }
+    .score-stat { text-align: center; }
+    .score-stat-val { font-size: 1.4rem; font-weight: 700; }
+    .score-stat-label { font-size: .68rem; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+    .mode-badge {
+      display: flex; align-items: center; gap: .5rem;
+      background: #1e0a3c; border: 1px solid #4c1d95;
+      padding: .35rem .9rem; border-radius: 6px;
+      font-size: .75rem; font-weight: 600; color: var(--purple2);
+      transition: background .2s, border-color .2s;
+    }
+    .mode-badge.detect   { background: #0a1f0a; border-color: #166534; color: var(--green2); }
+    .mode-badge.strict   { background: #1e0a3c; border-color: #4c1d95; color: var(--purple2); }
+    .mode-badge.paranoid { background: #2a0a0a; border-color: #991b1b; color: var(--red2); }
+
+    /* ── THREAT BAR ─────────────────────────────────────────────────────────── */
+    .threat-bar {
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      padding: .45rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      font-size: .75rem;
+      overflow-x: auto;
+    }
+    .threat-label { color: var(--text3); font-weight: 600; text-transform: uppercase; letter-spacing: .6px; white-space: nowrap; }
+    .tl-indicator { display: flex; align-items: center; gap: .4rem; font-weight: 700; white-space: nowrap; }
+    .tl-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .sep { color: var(--border2); }
+    .tb-item { white-space: nowrap; }
+    .tb-item span { font-weight: 600; }
+
+    /* ── TABS ───────────────────────────────────────────────────────────────── */
+    .tab-nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: none; border: none; border-bottom: 2px solid transparent;
+      color: var(--text3); padding: .75rem 1.1rem;
+      font-size: .82rem; font-weight: 500; cursor: pointer;
+      transition: color .15s, border-color .15s;
+      font-family: inherit; white-space: nowrap;
+    }
+    .tab-btn:hover  { color: var(--text); }
+    .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent); }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── PAGE LAYOUT ────────────────────────────────────────────────────────── */
+    .page { padding: 1.25rem 1.5rem; }
+
+    /* ── SECTION HEADER ─────────────────────────────────────────────────────── */
+    .section-header {
+      display: flex; align-items: center; gap: .5rem;
+      margin-bottom: .85rem;
+    }
+    .section-title { font-size: .7rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; }
+    .section-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ── PRIMARY STAT CARDS ─────────────────────────────────────────────────── */
+    .stats-primary { display: grid; grid-template-columns: repeat(6, 1fr); gap: .75rem; margin-bottom: 1rem; }
+    @media(max-width:1200px) { .stats-primary { grid-template-columns: repeat(3,1fr); } }
+
+    /* ── ATTACK TYPE CARDS ──────────────────────────────────────────────────── */
+    .stats-attacks { display: grid; grid-template-columns: repeat(6, 1fr); gap: .75rem; margin-bottom: 1.2rem; }
+    @media(max-width:1200px) { .stats-attacks { grid-template-columns: repeat(3,1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .9rem 1rem;
+      position: relative;
+      overflow: hidden;
+      transition: border-color .2s, transform .15s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+    }
+    .stat-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+    .stat-card.red::before    { background: var(--red); }
+    .stat-card.orange::before { background: var(--orange); }
+    .stat-card.yellow::before { background: var(--yellow); }
+    .stat-card.green::before  { background: var(--green); }
+    .stat-card.purple::before { background: var(--purple); }
+    .stat-card.cyan::before   { background: var(--cyan); }
+    .stat-card.pink::before   { background: var(--pink); }
+
+    .stat-icon { font-size: 1.1rem; margin-bottom: .5rem; }
+    .stat-label { font-size: .67rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: .3rem; }
+    .stat-val {
+      font-size: 1.9rem; font-weight: 700; line-height: 1; letter-spacing: -1px;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat-val.blue   { color: var(--accent2); }
+    .stat-val.red    { color: var(--red2); }
+    .stat-val.orange { color: var(--orange2); }
+    .stat-val.yellow { color: var(--yellow2); }
+    .stat-val.green  { color: var(--green2); }
+    .stat-val.purple { color: var(--purple2); }
+    .stat-val.cyan   { color: var(--cyan2); }
+    .stat-val.pink   { color: #f9a8d4; }
+    .stat-sub { font-size: .67rem; color: var(--text3); margin-top: .3rem; }
+
+    /* ── CHARTS GRID ────────────────────────────────────────────────────────── */
+    .charts-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: .75rem; margin-bottom: 1.2rem; }
+    .charts-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-bottom: 1.2rem; }
+    @media(max-width:1100px) { .charts-grid, .charts-grid-2 { grid-template-columns: 1fr 1fr; } }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.2rem;
+    }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .85rem; }
+    .panel-title { font-size: .7rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; }
+    .panel-badge { font-size: .65rem; background: var(--surface2); border: 1px solid var(--border); color: var(--text3); padding: .15em .5em; border-radius: 4px; }
+    .chart-wrap { position: relative; }
+
+    /* ── CVE INTEL FEED ─────────────────────────────────────────────────────── */
+    .cve-feed { display: flex; flex-direction: column; gap: .5rem; max-height: 280px; overflow-y: auto; }
+    .cve-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .65rem .9rem;
+      display: flex;
+      align-items: flex-start;
+      gap: .75rem;
+      cursor: pointer;
+      transition: border-color .15s;
+    }
+    .cve-item:hover { border-color: var(--border2); }
+    .cve-id { font-family: monospace; font-size: .72rem; font-weight: 700; color: var(--cyan2); white-space: nowrap; }
+    .cvss-badge {
+      font-size: .65rem; font-weight: 700; padding: .15em .5em; border-radius: 4px;
+      white-space: nowrap;
+    }
+    .cvss-c { background: #4a000033; color: var(--red2);    border: 1px solid #ef444433; }
+    .cvss-h { background: #431a0533; color: var(--orange2); border: 1px solid #f9731633; }
+    .cvss-m { background: #3f3f0033; color: var(--yellow2); border: 1px solid #eab30833; }
+    .cve-meta { flex: 1; min-width: 0; }
+    .cve-desc-text { font-size: .75rem; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cve-attack { font-size: .67rem; color: var(--text3); margin-top: .15rem; }
+
+    /* ── EVENTS TABLE ───────────────────────────────────────────────────────── */
+    .events-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .events-header {
+      padding: .85rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .events-title { font-size: .7rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; gap: .5rem; padding: .7rem 1.2rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center; background: var(--surface); }
+    .filter-btn { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); border-radius: 5px; padding: .25em .7em; font-size: .72rem; cursor: pointer; transition: all .15s; font-family: inherit; font-weight: 500; }
+    .filter-btn:hover  { color: var(--text); border-color: var(--border2); }
+    .filter-btn.active { color: var(--accent2); border-color: var(--accent); background: #1e2a4a; }
+    .search-input {
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 5px;
+      padding: .3em .8em; font-size: .72rem; color: var(--text); font-family: inherit;
+      outline: none; transition: border-color .15s; margin-left: auto;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--text3); }
+
+    table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    thead th {
+      background: #0a0e1a;
+      color: var(--text3); padding: .55rem 1rem;
+      text-transform: uppercase; font-size: .65rem;
+      letter-spacing: .6px; border-bottom: 1px solid var(--border);
+      font-weight: 600; text-align: left;
+    }
+    tbody tr { border-bottom: 1px solid var(--border); cursor: pointer; transition: background .1s; }
+    tbody tr:hover { background: #111827; }
+    tbody td { padding: .55rem 1rem; vertical-align: middle; }
+    td.truncate { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* badges */
+    .badge { display: inline-flex; align-items: center; gap: .3em; padding: .2em .6em; border-radius: 5px; font-size: .67rem; font-weight: 600; white-space: nowrap; }
+    .b-critical { background: #3f0a0a; color: var(--red2);    border: 1px solid #7f1d1d; }
+    .b-high     { background: #3f1a05; color: var(--orange2); border: 1px solid #7c2d12; }
+    .b-medium   { background: #3f3500; color: var(--yellow2); border: 1px solid #713f12; }
+    .b-low      { background: #052e16; color: var(--green2);  border: 1px solid #14532d; }
+    .b-block    { background: #3f0a0a; color: var(--red2);    border: 1px solid #7f1d1d; }
+    .b-sanitize { background: #3f3500; color: var(--yellow2); border: 1px solid #713f12; }
+    .b-allow    { background: #052e16; color: var(--green2);  border: 1px solid #14532d; }
+    .b-type     { background: #0c1a3f; color: var(--accent2); border: 1px solid #1e3a5f; }
+    .b-benign   { color: var(--text3); font-size: .75rem; }
+    .b-groq     { background: #0a2030; color: var(--cyan2);   border: 1px solid #164e63; font-size: .65rem; }
+    .b-gemini   { background: #1a0a30; color: var(--purple2); border: 1px solid #3b0764; font-size: .65rem; }
+    .b-rule     { background: var(--surface2); color: var(--text3); border: 1px solid var(--border); font-size: .65rem; }
+    .b-cve      { background: #0a2030; color: var(--cyan2);   border: 1px solid #164e63; font-family: monospace; font-size: .65rem; }
+
+    /* ── MODAL ───────────────────────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.8); backdrop-filter: blur(4px);
+      z-index: 300; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 14px;
+      padding: 1.75rem;
+      width: 640px; max-width: 95vw; max-height: 88vh;
+      overflow-y: auto; position: relative;
+      box-shadow: 0 25px 60px rgba(0,0,0,.6);
+    }
+    .modal-close { position: absolute; top: 1rem; right: 1.2rem; cursor: pointer; color: var(--text3); font-size: 1.2rem; background: none; border: none; line-height: 1; }
+    .modal-close:hover { color: var(--text); }
+    .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 1.25rem; }
+    .modal-section { margin-bottom: 1rem; }
+    .modal-section-title { font-size: .65rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: .7px; margin-bottom: .5rem; }
+    .kv { display: grid; grid-template-columns: 120px 1fr; gap: .4rem .8rem; font-size: .82rem; }
+    .kv-key { color: var(--text3); text-align: right; font-size: .78rem; }
+    .kv-val { color: var(--text); word-break: break-all; }
+    .code-block {
+      background: #030712; border: 1px solid var(--border);
+      border-radius: 7px; padding: .7rem .9rem;
+      font-size: .78rem; font-family: 'SF Mono', 'Fira Code', monospace;
+      word-break: break-all; color: #7dd3fc; line-height: 1.5;
+    }
+    .code-block.sanitized { color: var(--green2); }
+    .code-block.blocked   { color: var(--red2); }
+    .explanation-box {
+      background: #030712;
+      border-left: 3px solid var(--accent);
+      border-radius: 0 7px 7px 0;
+      padding: .7rem .9rem;
+      font-size: .82rem; color: var(--text2); line-height: 1.6;
+    }
+    .cve-box {
+      background: #030e1c;
+      border: 1px solid #164e63;
+      border-radius: 7px;
+      padding: .9rem 1rem;
+    }
+    .cve-box-header { display: flex; align-items: center; gap: .75rem; margin-bottom: .5rem; }
+    .cve-box-desc { font-size: .8rem; color: var(--text2); line-height: 1.5; }
+    .mitre-box {
+      background: #0c0a1e;
+      border: 1px solid #3b0764;
+      border-radius: 7px;
+      padding: .7rem 1rem;
+      font-size: .78rem; color: var(--purple2);
+    }
+    .mitre-id { font-family: monospace; font-weight: 700; }
+
+    /* ── THREAT MODEL ────────────────────────────────────────────────────────── */
+    .tm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .85rem; margin-bottom: 1.2rem; }
+    @media(max-width:800px) { .tm-grid { grid-template-columns: 1fr; } }
+    .tm-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.2rem 1.3rem; }
+    .tm-card h3 { font-size: .82rem; font-weight: 700; margin-bottom: .75rem; display: flex; align-items: center; gap: .5rem; }
+    .tm-card p, .tm-card li { font-size: .8rem; color: var(--text2); line-height: 1.65; }
+    .tm-card ul { padding-left: 1.2rem; }
+    .tm-card li { margin-bottom: .3rem; }
+    .tm-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .tm-table th { color: var(--text3); font-size: .65rem; text-transform: uppercase; letter-spacing: .6px; padding: .5rem .9rem; border-bottom: 1px solid var(--border); text-align: left; font-weight: 600; }
+    .tm-table td { padding: .6rem .9rem; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--text2); font-size: .8rem; }
+    .tm-table tr:last-child td { border-bottom: none; }
+
+    /* ── MISC ───────────────────────────────────────────────────────────────── */
+    .footer { text-align: center; font-size: .7rem; color: var(--text3); padding: .9rem; border-top: 1px solid var(--border); margin-top: .5rem; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+    .text-red    { color: var(--red2); }
+    .text-orange { color: var(--orange2); }
+    .text-green  { color: var(--green2); }
+    .text-cyan   { color: var(--cyan2); }
+    .text-purple { color: var(--purple2); }
+    .fw-600 { font-weight: 600; }
+
+    /* ── TOAST NOTIFICATIONS ─────────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 9999; display: flex; flex-direction: column; gap: .6rem;
+      pointer-events: none;
+    }
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--red);
+      border-radius: 10px;
+      padding: .8rem 1rem;
+      min-width: 280px; max-width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.5);
+      pointer-events: all;
+      animation: toast-in .3s ease;
+      position: relative;
+    }
+    .toast.high     { border-left-color: var(--orange); }
+    .toast.medium   { border-left-color: var(--yellow); }
+    .toast.fading   { animation: toast-out .4s ease forwards; }
+    @keyframes toast-in  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes toast-out { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(20px); } }
+    .toast-header { display: flex; align-items: center; gap: .5rem; margin-bottom: .3rem; }
+    .toast-type   { font-size: .78rem; font-weight: 700; }
+    .toast-risk   { font-size: .65rem; font-weight: 600; padding: .1em .5em; border-radius: 4px; }
+    .toast-body   { font-size: .75rem; color: var(--text2); }
+    .toast-close  { position: absolute; top: .6rem; right: .8rem; cursor: pointer;
+                    color: var(--text3); background: none; border: none; font-size: .9rem; }
+
+    /* ── TOP IPs PANEL ───────────────────────────────────────────────────────── */
+    .ip-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+    .ip-table th { color: var(--text3); font-size: .65rem; text-transform: uppercase;
+                   letter-spacing: .6px; padding: .5rem .8rem; border-bottom: 1px solid var(--border);
+                   font-weight: 600; text-align: left; }
+    .ip-table td { padding: .55rem .8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .ip-table tr:last-child td { border-bottom: none; }
+    .ip-bar-wrap { width: 80px; height: 6px; background: var(--border); border-radius: 3px; display:inline-block; vertical-align:middle; }
+    .ip-bar-fill { height: 100%; border-radius: 3px; background: var(--red); }
+    .scan-badge  { display:inline-block; padding:.1em .5em; border-radius:4px;
+                   font-size:.65rem; font-weight:700; background:rgba(239,68,68,.15);
+                   color:var(--red); border:1px solid rgba(239,68,68,.3); margin-left:.4rem; }
+
+    /* ── DIFF VIEW ───────────────────────────────────────────────────────────── */
+    .diff-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+    .diff-box  { background: #030712; border: 1px solid var(--border); border-radius: 7px;
+                 padding: .65rem .8rem; font-size: .75rem; font-family: monospace;
+                 word-break: break-all; line-height: 1.5; min-height: 40px; }
+    .diff-box.original  { border-left: 3px solid var(--red);   color: var(--red2); }
+    .diff-box.sanitized { border-left: 3px solid var(--green); color: var(--green2); }
+    .diff-label { font-size: .62rem; font-weight: 600; text-transform: uppercase;
+                  letter-spacing: .6px; margin-bottom: .3rem; }
+    .diff-label.orig { color: var(--red); }
+    .diff-label.san  { color: var(--green); }
+  </style>
+</head>
+<body>
+
+<!-- ═══ TOPBAR ═══════════════════════════════════════════════════════════════ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <div class="logo-icon">🛡</div>
+      <div>
+        <div class="logo-name">Semantic Traffic <span>Sanitizer</span></div>
+        <div class="logo-subtitle">AI-Powered Application Layer Protection</div>
+      </div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div><span class="live-text">LIVE</span></div>
+    <a href="http://localhost:8000" target="_blank" class="topbar-link">⬡ Target ↗</a>
+    <button onclick="downloadReport()" id="report-btn"
+      style="background:#1e2236;border:1px solid #2a2e45;color:var(--accent2);padding:.3rem .75rem;
+             border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;
+             transition:background .15s" title="Download PDF Security Report">
+      📄 Export Report
+    </button>
+    <span class="last-update" id="last-update"></span>
+  </div>
+</div>
+
+<!-- ═══ TOAST CONTAINER ══════════════════════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- ═══ SECURITY SCORE BANNER ════════════════════════════════════════════════ -->
+<div class="score-banner">
+  <div class="score-left">
+    <div class="score-circle">
+      <svg width="72" height="72" viewBox="0 0 72 72">
+        <circle class="score-circle-bg" cx="36" cy="36" r="30"/>
+        <circle class="score-circle-fg" id="score-ring" cx="36" cy="36" r="30"
+                stroke="#22c55e" stroke-dasharray="188.5" stroke-dashoffset="0"/>
+      </svg>
+      <div class="score-number">
+        <span id="score-val" style="color:var(--green2)">—</span>
+        <span class="score-label-sm">/ 100</span>
+      </div>
+    </div>
+    <div class="score-info">
+      <h3>Security Score</h3>
+      <p id="score-desc" style="color:var(--text2)">Calculating threat posture...</p>
+    </div>
+  </div>
+  <div class="score-right">
+    <div class="score-stat">
+      <div class="score-stat-val text-red" id="sb-attacks">—</div>
+      <div class="score-stat-label">Attacks</div>
+    </div>
+    <div class="score-stat">
+      <div class="score-stat-val text-orange" id="sb-blocked">—</div>
+      <div class="score-stat-label">Blocked</div>
+    </div>
+    <div class="score-stat">
+      <div class="score-stat-val text-cyan" id="sb-ai">—</div>
+      <div class="score-stat-label">AI Detections</div>
+    </div>
+    <div class="score-stat">
+      <div class="score-stat-val text-green" id="sb-total">—</div>
+      <div class="score-stat-label">Requests</div>
+    </div>
+  </div>
+  <div class="mode-badge" id="mode-badge" style="cursor:pointer;user-select:none" title="Click to change mode" onclick="cycleMode()">
+    <span id="mode-icon">⚡</span> <span id="mode-label">STRICT MODE</span>
+    <span style="font-size:.65rem;color:var(--text3);margin-left:.4rem" id="mode-desc">Block Critical/High · Sanitize Medium</span>
+  </div>
+</div>
+
+<!-- ═══ THREAT BAR ═══════════════════════════════════════════════════════════ -->
+<div class="threat-bar">
+  <span class="threat-label">Threat Level</span>
+  <div class="tl-indicator">
+    <div class="tl-dot" id="tl-dot" style="background:var(--green)"></div>
+    <span id="tl-label" style="color:var(--green);font-weight:700">LOW</span>
+  </div>
+  <span class="sep">│</span>
+  <div class="tb-item">SQL Inj: <span id="tb-sql" class="text-red fw-600">0</span></div>
+  <div class="tb-item">XSS: <span id="tb-xss" class="text-orange fw-600">0</span></div>
+  <div class="tb-item">Cmd Inj: <span id="tb-cmd" class="text-red fw-600">0</span></div>
+  <div class="tb-item">Path Trav: <span id="tb-path" class="text-orange fw-600">0</span></div>
+  <div class="tb-item">SSRF: <span id="tb-ssrf" class="text-red fw-600">0</span></div>
+  <span class="sep">│</span>
+  <div class="tb-item">Engine: <span class="text-cyan fw-600">Groq Llama 3.3 70B</span></div>
+  <div class="tb-item" style="margin-left:auto">Refresh: <span class="text-green fw-600">3s</span></div>
+</div>
+
+<!-- ═══ TAB NAV ══════════════════════════════════════════════════════════════ -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('monitor',this)">📊 Live Monitor</button>
+  <button class="tab-btn" onclick="switchTab('events',this)">📋 Event Log</button>
+  <button class="tab-btn" onclick="switchTab('intel',this)">🔍 Threat Intel</button>
+  <button class="tab-btn" onclick="switchTab('threatmodel',this)">🧠 Threat Model</button>
+</div>
+
+<!-- ══════════════════════════════════ TAB: MONITOR ════════════════════════ -->
+<div id="tab-monitor" class="tab-content active">
+<div class="page">
+
+  <!-- Primary stats -->
+  <div class="section-header">
+    <span class="section-title">System Overview</span>
+    <div class="section-line"></div>
+  </div>
+  <div class="stats-primary">
+    <div class="stat-card">
+      <div class="stat-icon">📡</div>
+      <div class="stat-label">Total Requests</div>
+      <div class="stat-val blue" id="s-total">—</div>
+      <div class="stat-sub">proxied through STS</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-label">Attacks Detected</div>
+      <div class="stat-val red" id="s-attacks">—</div>
+      <div class="stat-sub">malicious payloads</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-icon">🚫</div>
+      <div class="stat-label">Blocked (403)</div>
+      <div class="stat-val orange" id="s-blocked">—</div>
+      <div class="stat-sub">Critical &amp; High risk</div>
+    </div>
+    <div class="stat-card yellow">
+      <div class="stat-icon">🧹</div>
+      <div class="stat-label">Sanitized</div>
+      <div class="stat-val yellow" id="s-sanitized">—</div>
+      <div class="stat-sub">Medium risk, cleaned</div>
+    </div>
+    <div class="stat-card purple">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-label">High / Critical</div>
+      <div class="stat-val purple" id="s-highrisk">—</div>
+      <div class="stat-sub">severe threats</div>
+    </div>
+    <div class="stat-card cyan">
+      <div class="stat-icon">🤖</div>
+      <div class="stat-label">AI Detections</div>
+      <div class="stat-val cyan" id="s-ai">—</div>
+      <div class="stat-sub">Groq + Gemini</div>
+    </div>
+  </div>
+
+  <!-- Attack type breakdown cards -->
+  <div class="section-header">
+    <span class="section-title">Attack Type Breakdown</span>
+    <div class="section-line"></div>
+  </div>
+  <div class="stats-attacks">
+    <div class="stat-card red">
+      <div class="stat-label">SQL Injection</div>
+      <div class="stat-val red" id="s-sql">—</div>
+      <div class="stat-sub">database attacks</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">XSS</div>
+      <div class="stat-val orange" id="s-xss">—</div>
+      <div class="stat-sub">script injection</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">Command Injection</div>
+      <div class="stat-val red" id="s-cmd">—</div>
+      <div class="stat-sub">OS command execution</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-label">Path Traversal</div>
+      <div class="stat-val orange" id="s-path">—</div>
+      <div class="stat-sub">file system access</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-label">SSRF</div>
+      <div class="stat-val red" id="s-ssrf">—</div>
+      <div class="stat-sub">internal request forgery</div>
+    </div>
+    <div class="stat-card pink">
+      <div class="stat-label">NoSQL Injection</div>
+      <div class="stat-val pink" id="s-nosql">—</div>
+      <div class="stat-sub">database operator abuse</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="section-header">
+    <span class="section-title">Analytics</span>
+    <div class="section-line"></div>
+  </div>
+  <div class="charts-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Request &amp; Attack Timeline — Last 30 Min</span>
+        <span class="panel-badge">Live</span>
+      </div>
+      <div class="chart-wrap" style="height:195px">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Attack Distribution</span></div>
+      <div class="chart-wrap" style="height:195px">
+        <canvas id="typeChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Detection Source</span></div>
+      <div class="chart-wrap" style="height:195px">
+        <canvas id="sourceChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="charts-grid-2">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Risk Level Distribution</span></div>
+      <div class="chart-wrap" style="height:170px">
+        <canvas id="riskChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">Action Policy Distribution</span></div>
+      <div class="chart-wrap" style="height:170px">
+        <canvas id="actionChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Top Attacking IPs -->
+  <div class="section-header">
+    <span class="section-title">Top Attacking IPs</span>
+    <div class="section-line"></div>
+    <span style="font-size:.68rem;color:var(--text3)" id="ip-scan-count"></span>
+  </div>
+  <div class="panel" style="margin-bottom:1.2rem">
+    <div id="ip-empty" style="font-size:.8rem;color:var(--text3);padding:.5rem 0;display:none">
+      No attack traffic recorded yet.
+    </div>
+    <table class="ip-table" id="ip-table">
+      <thead>
+        <tr>
+          <th>#</th><th>IP Address</th><th>Attacks</th>
+          <th>Volume</th><th>Highest Risk</th><th>Last Seen</th>
+        </tr>
+      </thead>
+      <tbody id="ip-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Latest threats table -->
+  <div class="section-header">
+    <span class="section-title">Latest Threats</span>
+    <div class="section-line"></div>
+    <button onclick="switchTab('events',document.querySelectorAll('.tab-btn')[1])"
+            style="background:none;border:none;color:var(--accent2);font-size:.75rem;cursor:pointer;font-family:inherit;white-space:nowrap">
+      View all →
+    </button>
+  </div>
+  <div class="events-panel">
+    <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Time</th><th>Attack Type</th><th>Field</th><th>Risk</th><th>Action</th><th>CVE</th><th>Source</th><th>Conf.</th></tr>
+        </thead>
+        <tbody id="threats-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════════════════════════════ TAB: EVENTS ═════════════════════════ -->
+<div id="tab-events" class="tab-content">
+  <div class="filter-bar">
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('Block',this)">🚫 Blocked</button>
+    <button class="filter-btn" onclick="setFilter('Sanitize',this)">⚠ Sanitized</button>
+    <button class="filter-btn" onclick="setFilter('benign',this)">✓ Benign</button>
+    <button class="filter-btn" onclick="setFilter('ai',this)">🤖 AI Detected</button>
+    <span id="filter-count" style="font-size:.72rem;color:var(--text3);margin-left:.5rem"></span>
+    <input class="search-input" id="search-input" placeholder="🔍  Search IP, URL, field..." oninput="renderEvents()">
+  </div>
+  <div style="overflow-x:auto;max-height:calc(100vh - 240px);overflow-y:auto">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Time</th><th>Method</th><th>URL</th><th>Field</th>
+          <th>Attack Type</th><th>Risk</th><th>Action</th><th>CVE</th><th>Source</th><th>Conf.</th>
+        </tr>
+      </thead>
+      <tbody id="events-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ TAB: INTEL ══════════════════════════ -->
+<div id="tab-intel" class="tab-content">
+<div class="page">
+  <div class="section-header">
+    <span class="section-title">CVE Threat Intelligence Feed</span>
+    <div class="section-line"></div>
+    <span style="font-size:.7rem;color:var(--text3)">Real CVE records matched to detected attack patterns</span>
+  </div>
+  <div class="charts-grid-2" style="margin-bottom:1rem">
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">CVE Severity Distribution</span></div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="cveChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">CVSS Score Range</span></div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="cvssChart"></canvas>
+      </div>
+    </div>
+  </div>
+  <div class="section-header">
+    <span class="section-title">Recent CVE Matches</span>
+    <div class="section-line"></div>
+  </div>
+  <div class="cve-feed" id="cve-feed" style="max-height:none;gap:.6rem"></div>
+</div>
+</div>
+
+<!-- ══════════════════════════════════ TAB: THREAT MODEL ═══════════════════ -->
+<div id="tab-threatmodel" class="tab-content">
+<div class="page">
+  <div style="margin-bottom:1.2rem">
+    <h2 style="font-size:1rem;font-weight:700;margin-bottom:.3rem">Threat Model</h2>
+    <p style="color:var(--text2);font-size:.82rem">STRIDE-informed analysis · MITRE ATT&amp;CK mapping · Architectural boundaries</p>
+  </div>
+  <div class="tm-grid">
+    <div class="tm-card">
+      <h3>🎯 Adversary Assumptions</h3>
+      <ul>
+        <li>External attacker with knowledge of common web injection techniques</li>
+        <li>Target application processes user input without server-side sanitization</li>
+        <li>Attacker may use automated scanners (SQLMap, XSStrike, Nikto)</li>
+        <li>Not assumed: network-level access, proxy bypass via direct TCP</li>
+        <li>Out of scope: authenticated insider threats, SSL stripping</li>
+      </ul>
+    </div>
+    <div class="tm-card">
+      <h3>🏗️ System Boundaries</h3>
+      <ul>
+        <li><strong style="color:var(--text)">In scope:</strong> HTTP/HTTPS traffic through the mitmproxy intercept layer</li>
+        <li><strong style="color:var(--text)">Intercepted:</strong> GET query params, POST form bodies, POST JSON payloads</li>
+        <li><strong style="color:var(--text)">Not intercepted:</strong> Direct TCP, WebSocket frames, binary protocols</li>
+        <li><strong style="color:var(--text)">Trust boundary:</strong> Between client browser and application server</li>
+        <li><strong style="color:var(--text)">Detection engines:</strong> Groq Llama 3.3 70B → Gemini 2.0 Flash → Rules</li>
+      </ul>
+    </div>
+    <div class="tm-card" style="grid-column:span 2">
+      <h3>⚔️ STRIDE + MITRE ATT&CK Coverage Matrix</h3>
+      <table class="tm-table">
+        <thead><tr><th>STRIDE</th><th>Attack Vector</th><th>MITRE ATT&CK</th><th>Coverage</th><th>Response</th></tr></thead>
+        <tbody>
+          <tr><td><span class="text-red fw-600">Tampering</span></td><td>SQL Injection</td><td><span class="b-cve badge">T1190</span> Exploit Public-Facing App</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-block">Block 403</span></td></tr>
+          <tr><td><span class="text-red fw-600">Tampering</span></td><td>Command Injection</td><td><span class="b-cve badge">T1059.004</span> Unix Shell</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-block">Block 403</span></td></tr>
+          <tr><td><span class="text-orange fw-600">Spoofing</span></td><td>Cross-Site Scripting (XSS)</td><td><span class="b-cve badge">T1059.007</span> JavaScript</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-sanitize">Sanitize</span></td></tr>
+          <tr><td><span class="text-red fw-600">Info Disclosure</span></td><td>Path Traversal</td><td><span class="b-cve badge">T1083</span> File &amp; Dir Discovery</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-block">Block 403</span></td></tr>
+          <tr><td><span class="text-red fw-600">Info Disclosure</span></td><td>SSRF</td><td><span class="b-cve badge">T1090.002</span> External Proxy</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-block">Block 403</span></td></tr>
+          <tr><td><span class="text-orange fw-600">Tampering</span></td><td>LDAP Injection</td><td><span class="b-cve badge">T1210</span> Remote Services</td><td><span class="badge b-sanitize" style="color:var(--yellow2)">~ Partial</span></td><td><span class="badge b-sanitize">Sanitize</span></td></tr>
+          <tr><td><span class="text-orange fw-600">Tampering</span></td><td>NoSQL Injection</td><td><span class="b-cve badge">T1190</span> Exploit Public-Facing App</td><td><span class="badge b-allow">✓ Covered</span></td><td><span class="badge b-block">Block 403</span></td></tr>
+          <tr><td style="color:var(--text3)">Denial of Service</td><td>Request flooding, ReDoS</td><td>—</td><td><span class="badge b-rule">Not covered</span></td><td>Out of scope</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="tm-card">
+      <h3>⚡ Performance Characteristics</h3>
+      <ul>
+        <li><strong style="color:var(--text)">Groq Llama 3.3 70B:</strong> ~100–300ms per field, 6,000 RPM free</li>
+        <li><strong style="color:var(--text)">Gemini 2.0 Flash:</strong> 800ms–3s per field, 15 RPM free (fallback)</li>
+        <li><strong style="color:var(--text)">Rule-based fallback:</strong> &lt;1ms per field, always active</li>
+        <li><strong style="color:var(--text)">LRU Cache:</strong> 512 entries — repeated payloads served instantly</li>
+        <li><strong style="color:var(--text)">Rate limiter:</strong> 12 Groq calls/min with automatic fallback</li>
+      </ul>
+    </div>
+    <div class="tm-card">
+      <h3>🔐 Decision Policy (Strict Mode)</h3>
+      <ul>
+        <li><strong class="text-red">Block (403):</strong> Critical or High risk — request terminated, custom block page served</li>
+        <li><strong class="text-orange">Sanitize:</strong> Medium risk — payload stripped, clean request forwarded</li>
+        <li><strong class="text-green">Allow:</strong> Low / Benign — forwarded unchanged</li>
+        <li style="margin-top:.4rem;color:var(--text)">All decisions logged to SQLite with CVE + MITRE ATT&CK enrichment</li>
+      </ul>
+    </div>
+    <div class="tm-card" style="grid-column:span 2">
+      <h3>🚧 Known Limitations &amp; Roadmap</h3>
+      <ul>
+        <li><strong style="color:var(--text)">Encoding evasion:</strong> Base64, URL double-encoding bypasses may evade rules. Groq handles these better via semantic understanding.</li>
+        <li><strong style="color:var(--text)">Context blindness:</strong> Fields analysed individually — multi-field second-order attacks not detected.</li>
+        <li><strong style="color:var(--text)">Localhost proxy:</strong> macOS bypasses system proxy for localhost; requires <code>--proxy-bypass-list="&lt;-loopback&gt;"</code> Chrome flag.</li>
+        <li><strong style="color:var(--text)">Roadmap:</strong> Transparent proxy mode (pfctl), rate limiting, session-level anomaly detection, async AI pipeline for &lt;10ms overhead.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══ MODAL ════════════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">Event Detail</div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<div class="footer">
+  Semantic Traffic Sanitizer &nbsp;·&nbsp; UTS 41909 Cybersecurity Capstone Studio &nbsp;·&nbsp;
+  Groq Llama 3.3 70B + Gemini 2.0 Flash + Rule Engine
+</div>
+
+<script>
+{% raw %}
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const rBadge = r => `<span class="badge ${({'Critical':'b-critical','High':'b-high','Medium':'b-medium','Low':'b-low'}[r]||'b-low')}">${r}</span>`;
+const aBadge = a => ({'Block':'<span class="badge b-block">🚫 Block</span>','Sanitize':'<span class="badge b-sanitize">⚠ Sanitize</span>','Allowed':'<span class="badge b-allow">✓ Allow</span>','Allow':'<span class="badge b-allow">✓ Allow</span>'}[a]||`<span style="color:var(--text3);font-size:.72rem">${a}</span>`);
+const srcBadge = m => ({'groq':'<span class="badge b-groq">⚡ Groq</span>','gemini':'<span class="badge b-gemini">✦ Gemini</span>','fallback':'<span class="badge b-rule">⚙ Rule</span>'}[m]||'<span style="color:var(--text3)">—</span>');
+const cvssClass = s => s >= 9 ? 'cvss-c' : s >= 7 ? 'cvss-h' : 'cvss-m';
+
+const ATTACK_COLORS = {
+  'SQL Injection':     '#ef4444',
+  'XSS':              '#f97316',
+  'Command Injection': '#8b5cf6',
+  'Path Traversal':   '#eab308',
+  'SSRF':             '#06b6d4',
+  'LDAP Injection':   '#ec4899',
+  'NoSQL Injection':  '#f43f5e',
+  'Header Injection': '#84cc16',
+  'Benign':           '#374151',
+};
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+let timelineChart, typeChart, sourceChart, riskChart, actionChart, cveChart, cvssChart;
+
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: false, animation: false,
+  plugins: { legend: { display: false } },
+};
+
+function initCharts() {
+  const gc = '#1f2937', tc = '#6b7280';
+
+  timelineChart = new Chart(document.getElementById('timelineChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label:'Requests', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,.06)', tension:.4, pointRadius:0, fill:true, borderWidth:1.5 },
+      { label:'Attacks',  data:[], borderColor:'#ef4444', backgroundColor:'rgba(239,68,68,.06)',  tension:.4, pointRadius:0, fill:true, borderWidth:1.5 },
+      { label:'Blocked',  data:[], borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.06)', tension:.4, pointRadius:0, fill:true, borderWidth:1.5, borderDash:[4,3] },
+    ]},
+    options: { ...chartDefaults, animation: false,
+      plugins: { legend: { display: true, labels: { color: tc, boxWidth: 10, font: { size: 10 } } } },
+      scales: {
+        x: { ticks:{color:tc,font:{size:9},maxTicksLimit:8}, grid:{color:gc} },
+        y: { ticks:{color:tc,font:{size:9}}, grid:{color:gc}, beginAtZero:true }
+      }
+    }
+  });
+
+  typeChart = new Chart(document.getElementById('typeChart'), {
+    type: 'doughnut',
+    data: { labels:[], datasets:[{ data:[], backgroundColor:[], borderWidth:0, hoverOffset:4 }] },
+    options: { ...chartDefaults, cutout:'66%',
+      plugins: { legend: { display:true, position:'right', labels:{ color:'#d1d5db', boxWidth:10, font:{size:10} } } }
+    }
+  });
+
+  sourceChart = new Chart(document.getElementById('sourceChart'), {
+    type: 'doughnut',
+    data: { labels:['Groq Llama 3.3','Gemini 2.0','Rule-based'], datasets:[{ data:[0,0,0], backgroundColor:['#06b6d4','#8b5cf6','#374151'], borderWidth:0, hoverOffset:4 }] },
+    options: { ...chartDefaults, cutout:'66%',
+      plugins: { legend: { display:true, position:'right', labels:{ color:'#d1d5db', boxWidth:10, font:{size:10} } } }
+    }
+  });
+
+  riskChart = new Chart(document.getElementById('riskChart'), {
+    type: 'bar',
+    data: { labels:['Critical','High','Medium','Low'], datasets:[{
+      data:[0,0,0,0],
+      backgroundColor:['#ef444466','#f9731666','#eab30866','#22c55e66'],
+      borderColor:['#ef4444','#f97316','#eab308','#22c55e'],
+      borderWidth:1, borderRadius:5,
+    }]},
+    options: { ...chartDefaults,
+      scales: {
+        x: { ticks:{color:tc,font:{size:9}}, grid:{color:gc} },
+        y: { ticks:{color:tc,font:{size:9}}, grid:{color:gc}, beginAtZero:true }
+      }
+    }
+  });
+
+  actionChart = new Chart(document.getElementById('actionChart'), {
+    type: 'bar',
+    data: { labels:['Blocked','Sanitized','Allowed'], datasets:[{
+      data:[0,0,0],
+      backgroundColor:['#ef444466','#eab30866','#22c55e66'],
+      borderColor:['#ef4444','#eab308','#22c55e'],
+      borderWidth:1, borderRadius:5,
+    }]},
+    options: { ...chartDefaults,
+      scales: {
+        x: { ticks:{color:tc,font:{size:9}}, grid:{color:gc} },
+        y: { ticks:{color:tc,font:{size:9}}, grid:{color:gc}, beginAtZero:true }
+      }
+    }
+  });
+
+  cveChart = new Chart(document.getElementById('cveChart'), {
+    type: 'doughnut',
+    data: { labels:['Critical','High','Medium'], datasets:[{ data:[0,0,0], backgroundColor:['#ef444466','#f9731666','#eab30866'], borderColor:['#ef4444','#f97316','#eab308'], borderWidth:1, hoverOffset:4 }] },
+    options: { ...chartDefaults, cutout:'60%',
+      plugins:{ legend:{ display:true, position:'right', labels:{ color:'#d1d5db', boxWidth:10, font:{size:10} } } }
+    }
+  });
+
+  cvssChart = new Chart(document.getElementById('cvssChart'), {
+    type: 'bar',
+    data: { labels:['9-10','7-8.9','4-6.9','<4'], datasets:[{
+      label:'CVE Count', data:[0,0,0,0],
+      backgroundColor:['#ef444466','#f9731666','#eab30866','#22c55e66'],
+      borderColor:['#ef4444','#f97316','#eab308','#22c55e'],
+      borderWidth:1, borderRadius:5,
+    }]},
+    options: { ...chartDefaults,
+      plugins:{ legend:{ display:false } },
+      scales:{
+        x:{ ticks:{color:tc,font:{size:9}}, grid:{color:gc} },
+        y:{ ticks:{color:tc,font:{size:9}}, grid:{color:gc}, beginAtZero:true }
+      }
+    }
+  });
+}
+
+// ── Security score ────────────────────────────────────────────────────────────
+function updateScore(score) {
+  const el   = document.getElementById('score-val');
+  const ring = document.getElementById('score-ring');
+  const desc = document.getElementById('score-desc');
+  const r    = 30, circ = 2 * Math.PI * r;
+  const offset = circ * (1 - score / 100);
+  ring.style.strokeDashoffset = offset;
+  el.textContent = score;
+  const { color, label } = score >= 80
+    ? { color: 'var(--green2)',  label: 'Healthy — minimal threat activity detected' }
+    : score >= 60
+    ? { color: 'var(--yellow2)', label: 'Moderate — elevated attack frequency observed' }
+    : score >= 40
+    ? { color: 'var(--orange2)', label: 'Elevated — significant threats being blocked' }
+    : { color: 'var(--red2)',    label: 'Critical — high volume of severe attacks detected' };
+  el.style.color     = color;
+  ring.style.stroke  = color;
+  desc.textContent   = label;
+}
+
+// ── Threat level ──────────────────────────────────────────────────────────────
+function updateThreatLevel(attacks, blocked) {
+  const dot = document.getElementById('tl-dot'), lbl = document.getElementById('tl-label');
+  const { level, color } = blocked > 5 || attacks > 20 ? { level:'CRITICAL', color:'var(--red)' }
+    : blocked > 1 || attacks > 5 ? { level:'HIGH', color:'var(--orange)' }
+    : attacks > 0                ? { level:'ELEVATED', color:'var(--yellow)' }
+    :                              { level:'LOW', color:'var(--green)' };
+  dot.style.background = color; lbl.style.color = color; lbl.textContent = level;
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+async function updateStats() {
+  const d = await fetch('/api/stats').then(r=>r.json()).catch(()=>null);
+  if (!d) return;
+  document.getElementById('s-total').textContent    = d.total;
+  document.getElementById('s-attacks').textContent  = d.attacks;
+  document.getElementById('s-blocked').textContent  = d.blocked;
+  document.getElementById('s-sanitized').textContent= d.sanitized;
+  document.getElementById('s-highrisk').textContent = d.high_risk;
+  document.getElementById('s-ai').textContent       = d.ai_hits;
+  document.getElementById('s-sql').textContent      = d.sql_count;
+  document.getElementById('s-xss').textContent      = d.xss_count;
+  document.getElementById('s-cmd').textContent      = d.cmd_count;
+  document.getElementById('s-path').textContent     = d.path_count;
+  document.getElementById('s-ssrf').textContent     = d.ssrf_count;
+  document.getElementById('s-nosql').textContent    = d.nosql_count;
+  document.getElementById('tb-sql').textContent     = d.sql_count;
+  document.getElementById('tb-xss').textContent     = d.xss_count;
+  document.getElementById('tb-cmd').textContent     = d.cmd_count;
+  document.getElementById('tb-path').textContent    = d.path_count;
+  document.getElementById('tb-ssrf').textContent    = d.ssrf_count;
+  document.getElementById('sb-attacks').textContent = d.attacks;
+  document.getElementById('sb-blocked').textContent = d.blocked;
+  document.getElementById('sb-ai').textContent      = d.ai_hits;
+  document.getElementById('sb-total').textContent   = d.total;
+  updateScore(d.security_score || 100);
+  updateThreatLevel(d.attacks, d.blocked);
+
+  // Charts
+  const labels = Object.keys(d.breakdown);
+  typeChart.data.labels = labels;
+  typeChart.data.datasets[0].data = Object.values(d.breakdown);
+  typeChart.data.datasets[0].backgroundColor = labels.map(l => ATTACK_COLORS[l]+'99' || '#37415199');
+  typeChart.update();
+
+  sourceChart.data.datasets[0].data = [d.groq_hits, d.gemini_hits, d.fallback_hits];
+  sourceChart.update();
+
+  const rb = d.risk_breakdown || {};
+  riskChart.data.datasets[0].data = [rb.Critical||0, rb.High||0, rb.Medium||0, rb.Low||0];
+  riskChart.update();
+
+  const ab = d.action_breakdown || {};
+  actionChart.data.datasets[0].data = [ab.Block||0, ab.Sanitize||0, (ab.Allowed||0)+(ab.Allow||0)];
+  actionChart.update();
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────────
+async function updateTimeline() {
+  const d = await fetch('/api/timeline').then(r=>r.json()).catch(()=>null);
+  if (!d) return;
+  timelineChart.data.labels = d.labels;
+  timelineChart.data.datasets[0].data = d.requests;
+  timelineChart.data.datasets[1].data = d.attacks;
+  timelineChart.data.datasets[2].data = d.blocked;
+  timelineChart.update();
+}
+
+// ── Events ────────────────────────────────────────────────────────────────────
+let allEvents = [];
+let activeFilter = 'all';
+
+function setFilter(f, btn) {
+  activeFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderEvents();
+}
+
+function renderEvents() {
+  let rows = allEvents;
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  if (activeFilter === 'Block')    rows = rows.filter(e => e.action_taken === 'Block');
+  if (activeFilter === 'Sanitize') rows = rows.filter(e => e.action_taken === 'Sanitize');
+  if (activeFilter === 'benign')   rows = rows.filter(e => !e.attack_detected);
+  if (activeFilter === 'ai')       rows = rows.filter(e => e.detection_method === 'groq' || e.detection_method === 'gemini');
+  if (q) rows = rows.filter(e =>
+    (e.url||'').toLowerCase().includes(q) ||
+    (e.client_ip||'').toLowerCase().includes(q) ||
+    (e.field_name||'').toLowerCase().includes(q) ||
+    (e.attack_type||'').toLowerCase().includes(q) ||
+    (e.cve_id||'').toLowerCase().includes(q)
+  );
+  document.getElementById('filter-count').textContent = `${rows.length} events`;
+  const tbody = document.getElementById('events-tbody');
+  tbody.innerHTML = rows.map(e => {
+    const ts = (e.timestamp||'').slice(11,19);
+    const urlShort = (e.url||'').replace('http://localhost:8000','').slice(0,30);
+    const atype = e.attack_detected ? `<span class="badge b-type">${esc(e.attack_type)}</span>` : '<span class="b-benign">Benign</span>';
+    const cveEl = e.cve_id && e.cve_id !== 'N/A' ? `<span class="badge b-cve">${esc(e.cve_id)}</span>` : '<span style="color:var(--text3)">—</span>';
+    return `<tr onclick="showDetail(${e.id})">
+      <td style="color:var(--text3);font-size:.7rem">${e.id}</td>
+      <td style="color:var(--text3)">${ts}</td>
+      <td><span style="background:var(--surface2);padding:.1em .4em;border-radius:3px;font-size:.68rem;border:1px solid var(--border)">${e.method||'GET'}</span></td>
+      <td class="truncate" style="color:var(--text3);font-size:.75rem" title="${esc(e.url||'')}">${esc(urlShort)}</td>
+      <td class="truncate" style="color:var(--text2)">${esc(e.field_name||'—')}</td>
+      <td>${atype}</td>
+      <td>${rBadge(e.risk_level)}</td>
+      <td>${aBadge(e.action_taken)}</td>
+      <td>${cveEl}</td>
+      <td>${srcBadge(e.detection_method)}</td>
+      <td style="color:var(--accent2);font-size:.78rem">${e.attack_detected ? e.confidence+'%' : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function updateEvents() {
+  const rows = await fetch('/api/events').then(r=>r.json()).catch(()=>[]);
+  allEvents = rows;
+  const threats = rows.filter(e => e.attack_detected);
+  document.getElementById('threats-tbody').innerHTML = threats.slice(0,12).map(e => {
+    const ts = (e.timestamp||'').slice(11,19);
+    const cveEl = e.cve_id && e.cve_id !== 'N/A' ? `<span class="badge b-cve">${esc(e.cve_id)}</span>` : '—';
+    return `<tr onclick="showDetail(${e.id})">
+      <td style="color:var(--text3);font-size:.7rem">${e.id}</td>
+      <td style="color:var(--text3)">${ts}</td>
+      <td><span class="badge b-type">${esc(e.attack_type)}</span></td>
+      <td style="color:var(--text2)">${esc(e.field_name||'—')}</td>
+      <td>${rBadge(e.risk_level)}</td>
+      <td>${aBadge(e.action_taken)}</td>
+      <td>${cveEl}</td>
+      <td>${srcBadge(e.detection_method)}</td>
+      <td style="color:var(--accent2)">${e.confidence}%</td>
+    </tr>`;
+  }).join('');
+  renderEvents();
+}
+
+// ── CVE Intel Feed ────────────────────────────────────────────────────────────
+async function updateCveIntel() {
+  const rows = await fetch('/api/cve_feed').then(r=>r.json()).catch(()=>[]);
+  const feed = document.getElementById('cve-feed');
+  if (!feed) return;
+  if (!rows.length) {
+    feed.innerHTML = '<div style="color:var(--text3);font-size:.82rem;padding:.5rem">No CVE matches yet — trigger some attacks to populate intel feed.</div>';
+    return;
+  }
+  feed.innerHTML = rows.map(r => `
+    <div class="cve-item">
+      <div>
+        <div class="cve-id">${esc(r.cve_id)}</div>
+        <span class="badge cvss-badge ${cvssClass(r.cvss_score)}" style="margin-top:.3rem;display:inline-block">CVSS ${r.cvss_score}</span>
+      </div>
+      <div class="cve-meta">
+        <div class="cve-desc-text" title="${esc(r.cve_desc)}">${esc(r.cve_desc)}</div>
+        <div class="cve-attack">📌 ${esc(r.attack_type)} · ${(r.timestamp||'').slice(11,19)}</div>
+      </div>
+    </div>`).join('');
+
+  // Update CVE charts
+  const sevCounts = {Critical:0, High:0, Medium:0};
+  const cvssBuckets = [0,0,0,0]; // 9-10, 7-8.9, 4-6.9, <4
+  rows.forEach(r => {
+    if (r.cve_severity in sevCounts) sevCounts[r.cve_severity]++;
+    const s = r.cvss_score;
+    if (s >= 9) cvssBuckets[0]++;
+    else if (s >= 7) cvssBuckets[1]++;
+    else if (s >= 4) cvssBuckets[2]++;
+    else cvssBuckets[3]++;
+  });
+  cveChart.data.datasets[0].data = [sevCounts.Critical, sevCounts.High, sevCounts.Medium];
+  cveChart.update();
+  cvssChart.data.datasets[0].data = cvssBuckets;
+  cvssChart.update();
+}
+
+// ── Modal ─────────────────────────────────────────────────────────────────────
+function showDetail(id) {
+  const e = allEvents.find(x => x.id === id);
+  if (!e) return;
+  const rColor = {'Critical':'var(--red2)','High':'var(--orange2)','Medium':'var(--yellow2)','Low':'var(--green2)'}[e.risk_level]||'var(--text2)';
+  document.getElementById('modal-title').innerHTML = e.attack_detected
+    ? `<span style="color:${rColor}">⚠ ${esc(e.attack_type)} Detected</span>`
+    : '<span style="color:var(--green2)">✓ Benign Request</span>';
+
+  const cveSection = e.cve_id && e.cve_id !== 'N/A' ? `
+    <div class="modal-section">
+      <div class="modal-section-title">🔍 CVE Threat Intelligence</div>
+      <div class="cve-box">
+        <div class="cve-box-header">
+          <span style="font-family:monospace;font-weight:700;color:var(--cyan2)">${esc(e.cve_id)}</span>
+          <span class="badge cvss-badge ${cvssClass(e.cvss_score||0)}">CVSS ${e.cvss_score}</span>
+          <span class="badge ${{'Critical':'b-critical','High':'b-high','Medium':'b-medium'}[e.cve_severity]||'b-low'}">${esc(e.cve_severity)}</span>
+        </div>
+        <div class="cve-box-desc">${esc(e.cve_desc)}</div>
+      </div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">🎯 MITRE ATT&amp;CK</div>
+      <div class="mitre-box">
+        <span class="mitre-id">${esc(e.mitre_id)}</span> — ${esc(e.mitre_name)}
+      </div>
+    </div>` : '';
+
+  document.getElementById('modal-body').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-section-title">Request Details</div>
+      <div class="kv">
+        <span class="kv-key">Timestamp</span><span class="kv-val">${esc(e.timestamp)}</span>
+        <span class="kv-key">Client IP</span><span class="kv-val">${esc(e.client_ip)}</span>
+        <span class="kv-key">Method</span><span class="kv-val">${esc(e.method)}</span>
+        <span class="kv-key">URL</span><span class="kv-val">${esc(e.url)}</span>
+        <span class="kv-key">Field</span><span class="kv-val">${esc(e.field_name||'—')}</span>
+        <span class="kv-key">Risk</span><span class="kv-val">${rBadge(e.risk_level)}</span>
+        <span class="kv-key">Confidence</span><span class="kv-val" style="color:var(--accent2)">${e.confidence}%</span>
+        <span class="kv-key">Action</span><span class="kv-val">${aBadge(e.action_taken)}</span>
+        <span class="kv-key">Engine</span><span class="kv-val">${srcBadge(e.detection_method)}</span>
+      </div>
+    </div>
+    ${e.explanation ? `<div class="modal-section"><div class="modal-section-title">Analysis</div><div class="explanation-box">💡 ${esc(e.explanation)}</div></div>` : ''}
+    <div class="modal-section">
+      <div class="modal-section-title">Payload Analysis</div>
+      <div class="diff-wrap">
+        <div>
+          <div class="diff-label orig">⛔ Original (Malicious)</div>
+          <div class="diff-box original">${esc(e.original_value||'(empty)')}</div>
+        </div>
+        <div>
+          <div class="diff-label san">${e.action_taken==='Block' ? '🚫 Blocked — Not Forwarded' : '✅ Sanitized Output'}</div>
+          <div class="diff-box sanitized">${e.action_taken==='Block' ? '[REQUEST BLOCKED — PAYLOAD NOT FORWARDED]' : esc(e.sanitized_value||e.original_value||'(no change)')}</div>
+        </div>
+      </div>
+    </div>
+    ${cveSection}
+  `;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+// ── Top IPs ───────────────────────────────────────────────────────────────────
+async function updateTopIPs() {
+  const rows = await fetch('/api/top_ips').then(r=>r.json()).catch(()=>[]);
+  const tbody = document.getElementById('ip-tbody');
+  const empty = document.getElementById('ip-empty');
+  const tbl   = document.getElementById('ip-table');
+  const scanCount = document.getElementById('ip-scan-count');
+  if (!tbody) return;
+
+  if (!rows.length) {
+    if (empty) empty.style.display = 'block';
+    if (tbl)   tbl.style.display   = 'none';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  if (tbl)   tbl.style.display   = '';
+
+  const maxN = rows[0]?.attack_count || 1;
+  const scanners = rows.filter(r => r.scanning).length;
+  if (scanCount) scanCount.textContent = scanners > 0 ? `${scanners} scanning IP${scanners>1?'s':''} detected` : '';
+
+  const riskColor = r => r.critical_count > 0 ? 'var(--red)' : r.high_count > 0 ? 'var(--orange)' : 'var(--yellow)';
+
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td style="color:var(--text3)">${i+1}</td>
+      <td style="font-family:monospace;color:var(--text)">
+        ${esc(r.client_ip)}
+        ${r.scanning ? '<span class="scan-badge">SCANNING</span>' : ''}
+      </td>
+      <td style="font-weight:700;color:${riskColor(r)}">${r.attack_count}</td>
+      <td>
+        <div class="ip-bar-wrap">
+          <div class="ip-bar-fill" style="width:${Math.round(r.attack_count/maxN*100)}%;background:${riskColor(r)}"></div>
+        </div>
+      </td>
+      <td style="color:${r.critical_count>0?'var(--red)':r.high_count>0?'var(--orange)':'var(--yellow)'}">
+        ${r.critical_count > 0 ? '🔴 Critical' : r.high_count > 0 ? '🟠 High' : '🟡 Medium'}
+      </td>
+      <td style="color:var(--text3);font-size:.75rem">${(r.last_seen||'').slice(0,16)}</td>
+    </tr>`).join('');
+}
+
+// ── Toast Notifications ───────────────────────────────────────────────────────
+let _lastSeenEventId = 0;
+const RISK_TOAST_CLASS = {'Critical':'critical','High':'high','Medium':'medium','Low':''};
+const ATTACK_ICONS = {'SQL Injection':'🗃️','XSS':'📜','Command Injection':'💻','Path Traversal':'📂','SSRF':'🌐','LDAP Injection':'📋','NoSQL Injection':'📦'};
+
+function showToast(event) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  // Keep max 5 toasts
+  while (container.children.length >= 5) container.removeChild(container.firstChild);
+
+  const riskCls = RISK_TOAST_CLASS[event.risk_level] || '';
+  const icon    = ATTACK_ICONS[event.attack_type] || '⚠️';
+  const riskColor = {'Critical':'var(--red)','High':'var(--orange)','Medium':'var(--yellow)','Low':'var(--green)'}[event.risk_level] || 'var(--red)';
+
+  const toast = document.createElement('div');
+  toast.className = `toast ${riskCls}`;
+  toast.innerHTML = `
+    <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    <div class="toast-header">
+      <span style="font-size:.9rem">${icon}</span>
+      <span class="toast-type" style="color:${riskColor}">${esc(event.attack_type)}</span>
+      <span class="toast-risk" style="background:${riskColor}22;color:${riskColor};border:1px solid ${riskColor}55">${esc(event.risk_level)}</span>
+    </div>
+    <div class="toast-body">
+      Field: <strong>${esc(event.field_name)}</strong> &nbsp;·&nbsp;
+      Action: <strong style="color:${event.action_taken==='Block'?'var(--red)':'var(--orange)'}">${esc(event.action_taken)}</strong>
+      ${event.client_ip ? `<br>From: <span style="font-family:monospace">${esc(event.client_ip)}</span>` : ''}
+    </div>`;
+  container.appendChild(toast);
+
+  // Auto-dismiss after 6 seconds
+  setTimeout(() => {
+    toast.classList.add('fading');
+    setTimeout(() => toast.remove(), 400);
+  }, 6000);
+}
+
+async function checkNewEvents() {
+  const rows = await fetch(`/api/new_events?since=${_lastSeenEventId}`)
+    .then(r=>r.json()).catch(()=>[]);
+  if (!rows.length) return;
+
+  // Update last seen ID
+  _lastSeenEventId = Math.max(...rows.map(r => r.id), _lastSeenEventId);
+
+  // Show toast for most critical/recent (max 3 at once)
+  rows.slice(0, 3).forEach(showToast);
+}
+
+// ── PDF Report Download ───────────────────────────────────────────────────────
+async function downloadReport() {
+  const btn = document.getElementById('report-btn');
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+  try {
+    const res  = await fetch('/api/report');
+    if (!res.ok) throw new Error(await res.text());
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `STS_Security_Report_${new Date().toISOString().slice(0,10)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(err) {
+    alert('Report generation failed: ' + err.message);
+  } finally {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }
+}
+
+// ── Config / Mode ─────────────────────────────────────────────────────────────
+const MODE_META = {
+  detect:   { icon: '👁',  label: 'DETECT MODE',   desc: 'Log only — no blocking or sanitizing',      cls: 'detect'   },
+  strict:   { icon: '⚡',  label: 'STRICT MODE',   desc: 'Block Critical/High · Sanitize Medium',     cls: 'strict'   },
+  paranoid: { icon: '🚨',  label: 'PARANOID MODE', desc: 'Block Critical/High/Medium · Zero-tolerance', cls: 'paranoid' },
+};
+const MODE_CYCLE = ['detect', 'strict', 'paranoid'];
+let _currentMode = 'strict';
+
+async function fetchConfig() {
+  const cfg = await fetch('/api/config').then(r=>r.json()).catch(()=>null);
+  if (!cfg) return;
+  _currentMode = cfg.mode || 'strict';
+  applyModeBadge(_currentMode);
+}
+
+function applyModeBadge(mode) {
+  const m   = MODE_META[mode] || MODE_META.strict;
+  const el  = document.getElementById('mode-badge');
+  document.getElementById('mode-icon').textContent  = m.icon;
+  document.getElementById('mode-label').textContent = m.label;
+  document.getElementById('mode-desc').textContent  = m.desc;
+  el.className = 'mode-badge ' + m.cls;
+}
+
+async function cycleMode() {
+  const idx  = MODE_CYCLE.indexOf(_currentMode);
+  const next = MODE_CYCLE[(idx + 1) % MODE_CYCLE.length];
+  _currentMode = next;
+  applyModeBadge(next);
+  await fetch('/api/config', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({mode: next})
+  }).catch(()=>{});
+}
+
+// ── Tick ──────────────────────────────────────────────────────────────────────
+async function tick() {
+  await Promise.all([updateStats(), updateTimeline(), updateEvents(), updateCveIntel(), updateTopIPs()]);
+  document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+}
+
+// Initialise lastSeenEventId from current max event id (no toasts for old data)
+async function initLastSeen() {
+  const rows = await fetch('/api/new_events?since=0').then(r=>r.json()).catch(()=>[]);
+  if (rows.length) _lastSeenEventId = Math.max(...rows.map(r=>r.id));
+}
+
+initCharts();
+fetchConfig();
+initLastSeen().then(() => {
+  tick();
+  setInterval(tick, 3000);
+  setInterval(checkNewEvents, 2000); // fast poll for toasts
+  setInterval(fetchConfig, 10000);
+});
+{% endraw %}
+</script>
+</body>
+</html>
